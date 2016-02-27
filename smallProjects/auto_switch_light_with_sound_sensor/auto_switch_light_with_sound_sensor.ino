@@ -9,7 +9,7 @@ bool firstTimeSwitch = true;
 volatile int i = 0;
 volatile int val = 1000;
 
-  volatile int counter = 0;
+volatile int counter = 0;
 
 void setup()
 
@@ -19,7 +19,7 @@ void setup()
   
   pinMode(5, OUTPUT);
   
-  pinMode(6, OUTPUT);
+  pinMode(6, INPUT);
 
   pinMode(9, INPUT);
 }
