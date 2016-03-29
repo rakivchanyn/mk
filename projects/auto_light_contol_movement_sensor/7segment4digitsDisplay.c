@@ -7,6 +7,7 @@
 #include "avr/io.h"
 #include "uart.h"
 #include "7segment4digitsDisplay.h"
+#include "support.h"
 
 int aPin = 5;  //                A
 int bPin = 13; //            __________
@@ -25,30 +26,6 @@ int dig2 = 0;
 int dig3 = 0;
 int dig4 = 0;
 int DTime = 3;
-
-void digitalWrite (uint8_t pin, uint8_t val)
-{
-	switch (pin)
-	{
-	case 0: if (val == 0) PORTD &= ~(1<<PORTD0); else PORTD |= 1<<PORTD0;	break;
-	case 1: if (val == 0) PORTD &= ~(1<<PORTD1); else PORTD |= 1<<PORTD1;	break;
-	case 2: if (val == 0) PORTD &= ~(1<<PORTD2); else PORTD |= 1<<PORTD2;	break;
-	case 3: if (val == 0) PORTD &= ~(1<<PORTD3); else PORTD |= 1<<PORTD3;	break;
-	case 4: if (val == 0) PORTD &= ~(1<<PORTD4); else PORTD |= 1<<PORTD4;	break;
-	case 5: if (val == 0) PORTD &= ~(1<<PORTD5); else PORTD |= 1<<PORTD5;	break;
-	case 6: if (val == 0) PORTD &= ~(1<<PORTD6); else PORTD |= 1<<PORTD6;	break;
-	case 7: if (val == 0) PORTD &= ~(1<<PORTD7); else PORTD |= 1<<PORTD7;	break;
-	case 8:  if (val == 0) PORTB &= ~(1<<PORTB0); else PORTB |= 1<<PORTB0;	break;
-	case 9:	 if (val == 0) PORTB &= ~(1<<PORTB1); else PORTB |= 1<<PORTB1;	break;
-	case 10: if (val == 0) PORTB &= ~(1<<PORTB2); else PORTB |= 1<<PORTB2;	break;
-	case 11: if (val == 0) PORTB &= ~(1<<PORTB3); else PORTB |= 1<<PORTB3;	break;
-	case 12: if (val == 0) PORTB &= ~(1<<PORTB4); else PORTB |= 1<<PORTB4;	break;
-	case 13: if (val == 0) PORTB &= ~(1<<PORTB5); else PORTB |= 1<<PORTB5;	break;
-	case 14:	break;
-	default:	break;
-
-	}
-}
 
 void delay_ms(uint16_t msec)
 {

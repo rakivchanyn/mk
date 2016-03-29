@@ -4,16 +4,31 @@ void intToChar(char* buf, uint16_t in)
 {
 	volatile uint16_t b = 10000; //not more than 65535
 	volatile uint16_t i = 0;
-	while (b >= 1)
+	volatile uint16_t calcStarted = 0;
+	if (in == 0)
 	{
-		if ( in >= b )
+		buf[i] = '0';
+		++i;
+	}
+	else
+	{
+		while (b >= 1)
 		{
-			volatile uint16_t temp = (uint16_t)(in/b);
-			in = in - temp * b;
-			buf[i] = temp + '0';
-			i++;
+			if ( in >= b )
+			{
+				volatile uint16_t temp = (uint16_t)(in/b);
+				in = in - temp * b;
+				buf[i] = temp + '0';
+				++i;
+				calcStarted = 1;
+			}
+			else if (in == 0 || calcStarted )
+			{
+				buf[i] = '0';
+				++i;
+			}
+			b /= 10;
 		}
-		b /= 10;
 	}
 	buf[i] = 0;
 }
@@ -54,7 +69,12 @@ void printToPort(char* string)
 		++string;
 	}
 }
-
+void printInt(uint16_t i)
+{
+	char str[10];
+	intToChar (str, i);
+	printToPort(str);
+}
 void printFloat(float a)
 {
 	uint16_t val = (uint16_t)(a * 1000);

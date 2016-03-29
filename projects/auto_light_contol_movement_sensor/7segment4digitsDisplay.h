@@ -8,7 +8,7 @@
 #ifndef S7SEGMENT4DIGITSDISPLAY_H_
 #define S7SEGMENT4DIGITSDISPLAY_H_
 
-void digitalWrite (uint8_t pin, uint8_t val);
+//void digitalWrite (uint8_t pin, uint8_t val);
 void pickNumber(int x);
 void clearLEDs();
 void displayFloatNumber(float num);

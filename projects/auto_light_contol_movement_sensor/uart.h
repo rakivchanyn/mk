@@ -25,5 +25,6 @@ void USART_Init( unsigned int ubrr);
 void USART_Transmit( unsigned char data );
 unsigned char USART_Receive( void );
 void printToPort(char* string);
+void printInt(uint16_t i);
 void printFloat(float a);
 #endif /* UART_H_ */

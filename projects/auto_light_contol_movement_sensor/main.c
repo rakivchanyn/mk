@@ -1,137 +1,237 @@
-#include "avr/io.h"
+#include <avr/io.h>
 #include "uart.h"
-#include "7segment4digitsDisplay.h"
 #include "stdio.h"
+#include "ADC.h"
+#include "support.h"
+#include <avr/interrupt.h>
+#include <avr/power.h>
 
-void _delay_ms(uint16_t msec)
-{
-	volatile uint16_t count = 0;
-	while (count < msec)
-	{
-		volatile uint16_t count2 = 0;
-		while (count2 < 1000)
-			++count2;
-
-		++count;
-	}
-}
-
-void InitADC()
-{
-	// Select Vref=AVcc
-	ADMUX |= (1<<REFS0);
-	//set prescaller to 128 and enable ADC
-	ADCSRA |= (1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0)|(1<<ADEN);
-}
-
-uint16_t ReadADC(uint8_t ADCchannel)
-{
-	//select ADC channel with safety mask
-	ADMUX = (ADMUX & 0xF0) | (ADCchannel & 0x0F);
-	//single conversion mode
-	ADCSRA |= (1<<ADSC);
-	// wait until ADC conversion is complete
-	while( ADCSRA & (1<<ADSC) );
-	return ADC;
-}
-
-void to_num16(char * buf, uint16_t num)
-{
-    int rem;
-    int buf_index = 0;
-
-    do
-    {
-        rem = num % 10;
-        num /= 10;
-        buf[buf_index++] = rem + '0';
-    } while(num);
-
-    //now reverse the order
-    for(int i = 0; i < buf_index/2; ++i)
-    {
-        char t = buf[i];
-//        buf[i] = buf[buf_index-1-t];
-//        buf[buf_index-1-t] = t;
-        buf[i] = buf[buf_index-1-i];
-        buf[buf_index-1-i] = t;
-    }
-    buf[buf_index] = 0;
-}
-
-void blinkRGB_B0_B1_B2(uint16_t delay)
-{
-	PORTB |= 1<<PORTB0;
-	_delay_ms(delay);
-	PORTB ^= 1<<PORTB0;
-	PORTB |= 1<<PORTB1;
-	_delay_ms(delay);
-	PORTB ^= 1<<PORTB1;
-	PORTB |= 1<<PORTB2;
-	_delay_ms(delay);
-	PORTB ^= 1<<PORTB2;
-}
-
-
-//void digitalWrite (uint8_t pin, uint8_t val)
+//void blinkRGB_B0_B1_B2(uint16_t del)
 //{
-//	switch (pin)
+//	PORTB |= 1<<PORTB0;
+//	delay(delay);
+//	PORTB ^= 1<<PORTB0;
+//	PORTB |= 1<<PORTB1;
+//	delay(delay);
+//	PORTB ^= 1<<PORTB1;
+//	PORTB |= 1<<PORTB2;
+//	delay(delay);
+//	PORTB ^= 1<<PORTB2;
+//}
+volatile uint16_t gMicroSec = 0;
+volatile uint16_t g10MicroSec = 0;
+volatile uint16_t gMiliSec = 0;
+volatile uint16_t gSec = 0;
+
+volatile uint8_t moveSensPin = 5;
+volatile uint8_t ledPin = 7;
+
+volatile uint8_t trigPin = 3;
+volatile uint8_t echoPin = 4;
+void setup()
+{
+	setPinMode(moveSensPin, 0);
+	setPinMode(7, 1);
+	setPinMode(echoPin, 0);
+	setPinMode(trigPin, 1);
+}
+
+//ISR(TIMER0_COMPA_vect)
+//{
+//	++gMiliSec;
+//	if (gMiliSec >= 1000)
 //	{
-//	case 0: if (val == 0) PORTD &= 1<<PORTD0; else PORTD |= 1<<PORTD0;	break;
-//	case 1: if (val == 0) PORTD &= 1<<PORTD1; else PORTD |= 1<<PORTD1;	break;
-//	case 2: if (val == 0) PORTD &= 1<<PORTD2; else PORTD |= 1<<PORTD2;	break;
-//	case 3: if (val == 0) PORTD &= 1<<PORTD3; else PORTD |= 1<<PORTD3;	break;
-//	case 4: if (val == 0) PORTD &= 1<<PORTD4; else PORTD |= 1<<PORTD4;	break;
-//	case 5: if (val == 0) PORTD &= 1<<PORTD5; else PORTD |= 1<<PORTD5;	break;
-//	case 6: if (val == 0) PORTD &= 1<<PORTD6; else PORTD |= 1<<PORTD6;	break;
-//	case 7: if (val == 0) PORTD &= 1<<PORTD7; else PORTD |= 1<<PORTD7;	break;
-//	case 8:  if (val == 0) PORTB &= 1<<PORTB0; else PORTB |= 1<<PORTB0;	break;
-//	case 9:	 if (val == 0) PORTB &= 1<<PORTB1; else PORTB |= 1<<PORTB1;	break;
-//	case 10: if (val == 0) PORTB &= 1<<PORTB2; else PORTB |= 1<<PORTB2;	break;
-//	case 11: if (val == 0) PORTB &= 1<<PORTB3; else PORTB |= 1<<PORTB3;	break;
-//	case 12: if (val == 0) PORTB &= 1<<PORTB4; else PORTB |= 1<<PORTB4;	break;
-//	case 13: if (val == 0) PORTB &= 1<<PORTB5; else PORTB |= 1<<PORTB5;	break;
-//	case 14:	break;
-//	default:	break;
-//
+//		gMiliSec = 0;
+//		++gSec;
+//		printToPort("sec timer 0");
 //	}
 //}
 
-void setup()
+ISR(TIMER1_COMPA_vect)
 {
-	DDRB |= 1<<DDB0;
-	DDRB |= 1<<DDB1;
-	DDRB |= 1<<DDB2;
-	DDRB |= 1<<DDB3;
-	DDRB |= 1<<DDB4;
-	DDRB |= 1<<DDB5;
+	++g10MicroSec;
+	if (g10MicroSec >= 10000)
+	{
+		g10MicroSec = 0;
+		gMiliSec += 100;
+	}
+	if (gMiliSec >= 1000)
+	{
+		gMiliSec = 0;
+		++gSec;
+	}
+}
+//
+//ISR(TIMER2_COMPA_vect)
+//{
+//	++gMicroSecUS;
+//	if ( gMicroSecUS >= 1000 )
+//	{
+//		gMicroSecUS = 0;
+//		++gMiliS;
+//	}
+//}
 
-	DDRD |= 1<<DDD2;
-	DDRD |= 1<<DDD3;
-	DDRD |= 1<<DDD4;
-	DDRD |= 1<<DDD5;
-	DDRD |= 1<<DDD6;
-	DDRD |= 1<<DDD7;
+void doNothing()
+{
+	volatile uint16_t i = 0;
+	i++;
+}
+
+void delayX10MicroSec (uint16_t iMicroSec)
+{
+	g10MicroSec = 0;
+	while ((g10MicroSec) < iMicroSec) doNothing();
+}
+
+#define MAX_TIME 50000
+
+uint16_t timeTravel (uint16_t iPin, uint16_t iState)
+{
+	volatile uint16_t i = 0;
+	g10MicroSec = 0;
+	while ( !(PIND & 1<<PIND4) )
+		++i;
+
+	uint16_t msec = 0;
+	while ( (PIND & (1<<PIND4)) && (g10MicroSec < MAX_TIME) )
+		msec = g10MicroSec;
+
+	return (msec * 10);
+}
+
+void delayX4MicroSeconds( unsigned int us)
+{
+	// for the 16 MHz clock on most Arduino boards
+
+	// for a one-microsecond delay, simply return.  the overhead
+	// of the function call takes 14 (16) cycles, which is 1us
+	if (us <= 1) return; //  = 3 cycles, (4 when true)
+
+	// the following loop takes 1/4 of a microsecond (4 cycles)
+	// per iteration, so execute it four times for each microsecond of
+	// delay requested.
+	us <<= 2; // x4 us, = 4 cycles
+
+	// account for the time taken in the preceeding commands.
+	// we just burned 19 (21) cycles above, remove 5, (5*4=20)
+	// us is at least 8 so we can substract 5
+	us -= 2; // = 2 cycles,
+	// busy wait
+	asm volatile (
+		"1: sbiw %0,1" "\n\t" // 2 cycles
+		"brne 1b" : "=w" (us) : "0" (us) // 2 cycles
+	);
+}
+
+uint16_t isThereInteraction(uint16_t iInetactionDist)
+{
+	digitalWrite(trigPin, 0);
+	delayX4MicroSeconds(1);
+	digitalWrite(trigPin, 1);
+	delayX4MicroSeconds(3);
+	digitalWrite(trigPin, 0);
+
+	volatile uint16_t time = timeTravel(echoPin, 1);
+	volatile uint16_t dist = time*0.034/2;
+	return (dist < iInetactionDist);
 }
 
 int main ()
 {
+// 8-bit Timer interrupt init----------------------------------------------------
+//	TCNT0=0;
+////	Place TOP timer values to Output compare registers
+//	OCR0A = 249;
+//	TCCR0A |= (1<<COM0A0)|(1<<WGM01);
+//	//Enable Timer0 OCF0B Interrupt
+//	TIMSK0 |= (1<<OCIE0A);
+////	sei();
+//	TCCR0B |= (1 << CS01) | (1 << CS00);
+//----------------------------------------------------------
+
+	//Place TOP timer 2 values to Output compare registers
+//	OCR2A = 15;
+//	TCCR2A |= (1<<WGM21);
+//
+//	TIMSK2 |= (1<<OCIE2A);
+//	sei();
+//	TCCR2B = (1 << CS20);
+//----------------------------------------------------------
+
+	TCNT1=0;
+	OCR1A = 159;
+	//First capture on rising edge
+	TCCR1B |= (1<<WGM12);
+	//Enable input capture and overflow interrupts
+	TIMSK1 = (1<<OCIE1A);
+//	TIFR1 |= (1<<OCF1B);
+	//Start timer without prescaller
+	TCCR1B |= (1<<CS10);
+	//Enable global interrutps
+	sei();
+
+//----------------------------------------------------------
+
 	setup();
-	InitADC();
+	uint16_t switchLight = 0;
+	uint16_t manuallySwitched = 0;
+//	InitADC();
 	USART_Init(MYUBRR);
 	while(1)
 	{
-//		_delay_ms(3000);
-		volatile uint16_t adc = ReadADC(0);
-		float tempr = (adc * 0.4883);
-		//printFloat(tempr);
+		gSec = 0;
 
-		int i = 0;
-		while (i < 100)
+		if (isThereInteraction(25))
 		{
-			displayFloatNumber(tempr);
-			++i;
+			manuallySwitched = 1;
+			switchLight = ~switchLight;
+			digitalWrite(ledPin, switchLight);
 		}
+
+		volatile uint16_t val2 = 1;// PIND & 1<<PIND5; // motion sensor date
+		if ( val2 )
+		{
+			digitalWrite(ledPin, manuallySwitched ? switchLight : 1);
+			while ( gSec < 100 )
+			{
+				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
+				if ( move )
+				{
+					gSec = 0;
+				}
+
+				if (isThereInteraction(25))
+				{
+					manuallySwitched = 1;
+					switchLight = ~switchLight;
+					digitalWrite(ledPin, switchLight);
+				}
+			}
+		}
+		else
+		{
+			gSec = 0;
+			manuallySwitched = 0;
+			switchLight = 0;
+			digitalWrite(ledPin, 0);
+		}
+
+		delayX10MicroSec(100);
 	}
 	return 0;
 }
+
+//DDRB |= 1<<DDB0;
+//DDRB |= 1<<DDB1;
+//DDRB |= 1<<DDB2;
+//DDRB |= 1<<DDB3;
+//DDRB |= 1<<DDB4;
+//DDRB |= 1<<DDB5;
+//
+//DDRD |= 1<<DDD2;
+//DDRD |= 1<<DDD3;
+//DDRD |= 1<<DDD4;
+//DDRD |= 1<<DDD5;
+//DDRD |= 1<<DDD6;
+//DDRD |= 1<<DDD7;
