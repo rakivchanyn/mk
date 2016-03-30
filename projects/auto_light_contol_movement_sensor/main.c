@@ -23,7 +23,7 @@ volatile uint16_t g10MicroSec = 0;
 volatile uint16_t gMiliSec = 0;
 volatile uint16_t gSec = 0;
 
-volatile uint8_t moveSensPin = 5;
+volatile uint8_t moveSensPin = 6;
 volatile uint8_t ledPin = 7;
 
 volatile uint8_t trigPin = 3;
@@ -31,7 +31,7 @@ volatile uint8_t echoPin = 4;
 void setup()
 {
 	setPinMode(moveSensPin, 0);
-	setPinMode(7, 1);
+	setPinMode(ledPin, 1);
 	setPinMode(echoPin, 0);
 	setPinMode(trigPin, 1);
 }
@@ -180,20 +180,22 @@ int main ()
 	USART_Init(MYUBRR);
 	while(1)
 	{
-		gSec = 0;
+//		if (isThereInteraction(25))
+//		{
+//			manuallySwitched = 1;
+//			switchLight = ~switchLight;
+//			digitalWrite(ledPin, switchLight);
+//		}
 
-		if (isThereInteraction(25))
-		{
-			manuallySwitched = 1;
-			switchLight = ~switchLight;
-			digitalWrite(ledPin, switchLight);
-		}
+		volatile uint16_t motionDetected = PIND & 1<<PIND6; // motion sensor date
+		printInt(motionDetected);
 
-		volatile uint16_t val2 = 1;// PIND & 1<<PIND5; // motion sensor date
-		if ( val2 )
+		if ( motionDetected )
 		{
+			printToPort("inside motion loop\n");
 			digitalWrite(ledPin, manuallySwitched ? switchLight : 1);
-			while ( gSec < 100 )
+			gSec = 0;
+			while ( gSec < 10 )
 			{
 				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
 				if ( move )
@@ -206,18 +208,20 @@ int main ()
 					manuallySwitched = 1;
 					switchLight = ~switchLight;
 					digitalWrite(ledPin, switchLight);
+					delay(100);
 				}
 			}
 		}
 		else
 		{
-			gSec = 0;
 			manuallySwitched = 0;
 			switchLight = 0;
 			digitalWrite(ledPin, 0);
 		}
 
-		delayX10MicroSec(100);
+		delayX10MicroSec(10000);
+		gSec = 0;
+
 	}
 	return 0;
 }
