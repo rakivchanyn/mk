@@ -20,8 +20,10 @@
 //}
 volatile uint16_t gMicroSec = 0;
 volatile uint16_t g10MicroSec = 0;
+volatile uint16_t g10MicroSec2 = 0;
 volatile uint16_t gMiliSec = 0;
 volatile uint16_t gSec = 0;
+volatile uint16_t gSec2 = 0;
 
 volatile uint8_t moveSensPin = 6;
 volatile uint8_t ledPin = 7;
@@ -50,6 +52,7 @@ void setup()
 ISR(TIMER1_COMPA_vect)
 {
 	++g10MicroSec;
+	++g10MicroSec2;
 	if (g10MicroSec >= 10000)
 	{
 		g10MicroSec = 0;
@@ -59,6 +62,7 @@ ISR(TIMER1_COMPA_vect)
 	{
 		gMiliSec = 0;
 		++gSec;
+		++gSec2;
 	}
 }
 //
@@ -78,10 +82,16 @@ void doNothing()
 	i++;
 }
 
-void delayX10MicroSec (uint16_t iMicroSec)
+void delayX10MicroSec(uint16_t iMicroSec)
 {
-	g10MicroSec = 0;
-	while ((g10MicroSec) < iMicroSec) doNothing();
+	g10MicroSec2 = 0;
+	while (g10MicroSec2 < iMicroSec) doNothing();
+}
+
+void delaySec(uint16_t iSec)
+{
+	gSec2 = 0;
+	while ( gSec2 < iSec ) doNothing();
 }
 
 #define MAX_TIME 50000
@@ -176,6 +186,7 @@ int main ()
 	setup();
 	uint16_t switchLight = 0;
 	uint16_t manuallySwitched = 0;
+	uint16_t canBeSwitched = 0;
 //	InitADC();
 	USART_Init(MYUBRR);
 	while(1)
@@ -195,7 +206,7 @@ int main ()
 			printToPort("inside motion loop\n");
 			digitalWrite(ledPin, manuallySwitched ? switchLight : 1);
 			gSec = 0;
-			while ( gSec < 10 )
+			while ( gSec < 30 )
 			{
 				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
 				if ( move )
@@ -203,12 +214,18 @@ int main ()
 					gSec = 0;
 				}
 
-				if (isThereInteraction(25))
+				if (isThereInteraction(25) && canBeSwitched)
 				{
 					manuallySwitched = 1;
+					canBeSwitched = 0;
 					switchLight = ~switchLight;
 					digitalWrite(ledPin, switchLight);
-					delay(100);
+					delaySec(3);
+				}
+				else
+				{
+					canBeSwitched = 1;
+					delayX10MicroSec(100);
 				}
 			}
 		}
@@ -219,7 +236,7 @@ int main ()
 			digitalWrite(ledPin, 0);
 		}
 
-		delayX10MicroSec(10000);
+		delayX10MicroSec(1000);
 		gSec = 0;
 
 	}
