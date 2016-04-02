@@ -20,6 +20,7 @@ volatile uint16_t g10MicroSec2 = 0;
 volatile uint16_t gMiliSec = 0;
 volatile uint16_t gSec = 0;
 volatile uint16_t gSec2 = 0;
+volatile uint16_t gForgotInterSec = 0;
 
 volatile uint16_t gSwitchLight = 0;
 volatile uint16_t gManuallySwitched = 0;
@@ -107,6 +108,7 @@ ISR(TIMER1_COMPA_vect)
 		gMiliSec = 0;
 		++gSec;
 		++gSec2;
+		++gForgotInterSec;
 	}
 }
 //
@@ -189,21 +191,25 @@ uint16_t isThereInteraction(uint16_t iInetactionDist)
 	return (dist < iInetactionDist);
 }
 
-void switchLight()
+bool switchLight()
 {
+	++gForgotInterSec;
 	if (isThereInteraction(25) && gCanBeSwitched)
 	{
 		gManuallySwitched = 1;
 		gCanBeSwitched = 0;
 		gSwitchLight = ~gSwitchLight;
 		digitalWrite(ledPin, gSwitchLight);
-		delaySec(3);
 	}
 	else
-	{
 		gCanBeSwitched = 1;
-		delayX10MicroSec(100);
+	if (gForgotInterSec > 300)
+	{
+		gForgotInterSec = 0;
+		gManuallySwitched = 0;
 	}
+	delaySec(3);
+	return gManuallySwitched ? true : false;
 }
 
 void lightControl()
@@ -213,17 +219,15 @@ void lightControl()
 
 	while(1)
 	{
-		switchLight();
-
 		volatile uint16_t motionDetected = PIND & 1<<PIND6; // motion sensor date
 		if ( motionDetected )
 		{
-			printToPort("inside motion loop\n");
-			digitalWrite(ledPin, gManuallySwitched ? gSwitchLight : 1);
+//			printToPort("inside motion loop\n");
+			digitalWrite(ledPin, 1);
 			gSec = 0;
-			while ( gSec < 60 )
+			while ( gSec < 60 || gManuallySwitched)
 			{
-				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
+				volatile uint16_t move = PIND & 1<<PIND6; //don't switch off until movements present or switch off manually
 				if ( move )
 				{
 					gSec = 0;
@@ -231,14 +235,13 @@ void lightControl()
 				switchLight();
 			}
 		}
-		else if(!gManuallySwitched)
+		else
 		{
-			gManuallySwitched = 0;
 			gSwitchLight = 0;
 			digitalWrite(ledPin, 0);
 		}
 
-		delayX10MicroSec(1000);
+		delayX10MicroSec(100);
 		gSec = 0;
 	}
 }

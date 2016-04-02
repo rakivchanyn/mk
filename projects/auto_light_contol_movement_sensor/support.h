@@ -11,6 +11,7 @@
 #define INPUT 0
 #define OUTPUT 1
 
+typedef enum { false, true } bool;
 void delay(uint16_t msec);
 void to_num16(char * buf, uint16_t num);
 void setPinMode(uint8_t iPin, uint8_t iMode);
