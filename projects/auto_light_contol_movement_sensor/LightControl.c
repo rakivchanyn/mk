@@ -24,11 +24,12 @@ volatile uint16_t gForgotInterSec = 0;
 
 volatile uint16_t gSwitchLight = 0;
 volatile uint16_t gManuallySwitched = 0;
-volatile uint16_t gCanBeSwitched = 0;
+volatile uint16_t gCanBeSwitched = 1;
 volatile uint16_t gIgnoreMotion = 0;
 
-volatile uint8_t moveSensPin = 6;
+volatile uint8_t moveSensPin =  5;
 volatile uint8_t ledPin = 7;
+volatile uint8_t highLightPin = 8;
 
 volatile uint8_t trigPin = 3;
 volatile uint8_t echoPin = 4;
@@ -39,6 +40,7 @@ void setup()
 	setPinMode(ledPin, 1);
 	setPinMode(echoPin, 0);
 	setPinMode(trigPin, 1);
+	setPinMode(highLightPin, 1);
 
 	startTimer1_16bit(159);
 	//InitADC();
@@ -193,22 +195,25 @@ uint16_t isThereInteraction(uint16_t iInetactionDist)
 
 bool switchLight()
 {
-	++gForgotInterSec;
+
 	if (isThereInteraction(25) && gCanBeSwitched)
 	{
 		gManuallySwitched = 1;
 		gCanBeSwitched = 0;
-		gSwitchLight = ~gSwitchLight;
+		gForgotInterSec = 0;
+		gSwitchLight = !gSwitchLight;
+//		printInt(gSwitchLight);
 		digitalWrite(ledPin, gSwitchLight);
+		digitalWrite(highLightPin, 1);
 	}
 	else
 		gCanBeSwitched = 1;
+
 	if (gForgotInterSec > 300)
-	{
-		gForgotInterSec = 0;
 		gManuallySwitched = 0;
-	}
+
 	delaySec(3);
+	digitalWrite(highLightPin, 0);
 	return gManuallySwitched ? true : false;
 }
 
@@ -219,15 +224,16 @@ void lightControl()
 
 	while(1)
 	{
-		volatile uint16_t motionDetected = PIND & 1<<PIND6; // motion sensor date
+		volatile uint16_t motionDetected = PIND & 1<<PIND5; // motion sensor date
 		if ( motionDetected )
 		{
 //			printToPort("inside motion loop\n");
 			digitalWrite(ledPin, 1);
+			gSwitchLight = 1;
 			gSec = 0;
-			while ( gSec < 60 || gManuallySwitched)
+			while ( gSec < 60 || gManuallySwitched )
 			{
-				volatile uint16_t move = PIND & 1<<PIND6; //don't switch off until movements present or switch off manually
+				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
 				if ( move )
 				{
 					gSec = 0;
@@ -241,7 +247,7 @@ void lightControl()
 			digitalWrite(ledPin, 0);
 		}
 
-		delayX10MicroSec(100);
+		delayX10MicroSec(10);
 		gSec = 0;
 	}
 }
