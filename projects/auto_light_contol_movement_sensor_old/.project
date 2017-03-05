@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>auto_light_contol_movement_sensor</name>
+	<comment></comment>
+	<projects>
+		<project>auto_light_contol_movement_sensor</project>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.cdt.autotools.core.genmakebuilderV2</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
+			<triggers>clean,full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.ScannerConfigBuilder</name>
+			<triggers>full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+		<nature>de.innot.avreclipse.core.avrnature</nature>
+		<nature>org.eclipse.cdt.autotools.core.autotoolsNatureV2</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
+	</natures>
+	<variableList>
+		<variable>
+			<name>AVR_INCLUDE_LOC</name>
+			<value>file:/usr/share/arduino/hardware/tools/avr/avr/include</value>
+		</variable>
+	</variableList>
+</projectDescription>

@@ -1,7 +1,7 @@
 /*
  * LightControl.c
  *
- *  Created on: 1 квіт. 2016 р.
+ *  Created on: 1 пїЅпїЅпїЅ. 2016 пїЅ.
  *      Author: Gumenyak
  */
 
@@ -11,6 +11,8 @@
 #include "LightControl.h"
 #include "support.h"
 #include "uart.h"
+
+//#define USE_US_SENSOR
 
 #define MAX_TIME 50000
 
@@ -30,6 +32,7 @@ volatile uint16_t gIgnoreMotion = 0;
 volatile uint8_t moveSensPin =  5;
 volatile uint8_t ledPin = 7;
 volatile uint8_t highLightPin = 8;
+volatile uint8_t ledTest = 13;
 
 volatile uint8_t trigPin = 3;
 volatile uint8_t echoPin = 4;
@@ -41,6 +44,7 @@ void setup()
 	setPinMode(echoPin, 0);
 	setPinMode(trigPin, 1);
 	setPinMode(highLightPin, 1);
+	setPinMode(ledTest, 1);
 
 	startTimer1_16bit(159);
 	//InitADC();
@@ -195,8 +199,13 @@ uint16_t isThereInteraction(uint16_t iInetactionDist)
 
 bool switchLight()
 {
-
-	if (isThereInteraction(25) && gCanBeSwitched)
+	volatile uint16_t isThereInteraction = 0;
+#ifdef USE_US_SENSOR
+	isThereInteraction = isThereInteraction(25);
+#else
+	isThereInteraction = !(PIND & 1<<PIND4);
+#endif
+	if (isThereInteraction && gCanBeSwitched)
 	{
 		gManuallySwitched = 1;
 		gCanBeSwitched = 0;
@@ -217,37 +226,48 @@ bool switchLight()
 	return gManuallySwitched ? true : false;
 }
 
-void lightControl()
+void PlantsGrowAutomation()
 {
 	setup();
-	USART_Init(MYUBRR);
+//	USART_Init(MYUBRR);
 
 	while(1)
 	{
-		volatile uint16_t motionDetected = PIND & 1<<PIND5; // motion sensor date
-		if ( motionDetected )
-		{
-//			printToPort("inside motion loop\n");
-			digitalWrite(ledPin, 1);
-			gSwitchLight = 1;
-			gSec = 0;
-			while ( gSec < 60 || gManuallySwitched )
-			{
-				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
-				if ( move )
-				{
-					gSec = 0;
-				}
-				switchLight();
-			}
-		}
-		else
-		{
-			gSwitchLight = 0;
-			digitalWrite(ledPin, 0);
-		}
 
-		delayX10MicroSec(10);
-		gSec = 0;
+		digitalWrite(ledTest, 0);
+		delaySec(1);
+		digitalWrite(ledTest, 1);
+		delaySec(1);
+
+		//		volatile uint16_t motionDetected = PIND & 1<<PIND5; // motion sensor date
+////		printInt(motionDetected);
+//		if ( motionDetected )
+//		{
+//			digitalWrite(ledPin, 1);
+//			gSwitchLight = 1;
+//			gSec = 0;
+//			while ( gSec < 60 || gManuallySwitched )
+//			{
+////				printToPort("seconds - ");
+//				printInt(gSec);
+//
+//				volatile uint16_t move = PIND & 1<<PIND5; //don't switch off until movements present or switch off manually
+//				if ( move )
+//				{
+//					gSec = 0;
+//				}
+//				delayX10MicroSec(10);
+//				switchLight();
+//			}
+//		}
+//		else
+//		{
+//			gSwitchLight = 0;
+//			digitalWrite(ledPin, 0);
+//		}
+//
+//		delayX10MicroSec(10);
+//		gSec = 0;
+
 	}
 }

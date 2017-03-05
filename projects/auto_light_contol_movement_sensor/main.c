@@ -2,7 +2,6 @@
 #include <avr/power.h>
 #include <avr/io.h>
 #include "uart.h"
-#include "stdio.h"
 #include "ADC.h"
 #include "support.h"
 #include "LightControl.h"
@@ -21,7 +20,7 @@
 
 int main ()
 {
-	lightControl();
+	PlantsGrowAutomation();
 	return 0;
 }
 
