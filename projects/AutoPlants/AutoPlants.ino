@@ -111,20 +111,31 @@ void loop() {
   lcd.backlight();
   lcd.display();
   
-  amountOfLight = averLight(15, 5);
   digitalWrite ( switchSensorPin, HIGH );
+  amountOfLight = averLight(5, 5);
   
   if ( !isLightSwitched && (amountOfLight < 150) )
   {
     lcd.clear();
     lcd.home();
     lcd.print("switch on");
+    lcd.setCursor( 0, 1 );
+    lcd.print("light - ");
+    lcd.print(amountOfLight);
     delay(3000);    
 //    Serial.print("switch the light on ");
 //    Serial.println(amountOfLight);
 
     switchTheLight( 1 );
+
+    lcd.clear();
+    lcd.home();
+    lcd.print("watering");
     watering(30);
+    
+    lcd.clear();
+    lcd.home();
+    lcd.print("calc. threshold");
     newThreshold = averLight(15, 5);
     
     lcd.clear();
@@ -180,5 +191,5 @@ void loop() {
   lcd.noBacklight();
 //  Serial.print("TIME FROM WATERING "); 
 //  Serial.println(timeFromWatering);  
-  delaySec(60);
+  delaySec(10);
 }
