@@ -28,6 +28,8 @@ const int lightPin = LED_BUILTIN;
 const int releyPin = 9;
 const int switchSensorPin = 5;
 const int switchPumpPin = 8;
+const byte interruptPin = 3;
+const int ledPin = 4;
 
 int amountOfLight = 0;        // value read from the pot
 //int outputValue = 0;        // value output to the PWM (analog out)
@@ -35,6 +37,8 @@ int isLightSwitched = 0;
 int averageWithSwithedLight = 0;
 int newThreshold = 0;
 int timeFromWatering = 0;
+volatile bool state = false;
+volatile int delayTime = 60;
 
 void setup() {
   // initialize serial communications at 9600 bps:
@@ -45,6 +49,10 @@ void setup() {
   pinMode(switchPumpPin, OUTPUT);
   digitalWrite(releyPin, HIGH);
   digitalWrite(switchPumpPin, HIGH);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+  pinMode(interruptPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), switchDistlay, LOW);
 
   int charBitmapSize = (sizeof(charBitmap ) / sizeof (charBitmap[0]));
 
@@ -71,11 +79,29 @@ void delaySec( int iSec )
 
 int averLight( int iIterNum, int iSecDelay )
 {
+    if (state)
+    {
+      lcd.clear();
+      lcd.home();
+      lcd.print("calc. avr. light");
+      lcd.setCursor( 0, 1 );
+      lcd.print(iIterNum * iSecDelay);
+      lcd.print(" sec");
+    }
     volatile int averageLight = analogRead(analogInPin) / iIterNum;
     delaySec(iSecDelay);
     for ( int i = 0; i < iIterNum - 1; ++i )
     {
       averageLight += (analogRead(analogInPin) / iIterNum );
+      if (state)
+      {
+        lcd.clear();
+        lcd.home();
+        lcd.print("calc. avr. light");
+        lcd.setCursor( 0, 1 );
+        lcd.print(((iIterNum - 1) - i) * iSecDelay);
+        lcd.print(" sec");
+      }
       delaySec(iSecDelay);
     }
 //    lcd.home();
@@ -100,6 +126,13 @@ void watering(int iTimeSec)
 {
   if (timeFromWatering < 500)
     return;
+  
+  if (state)
+  {
+    lcd.clear();
+    lcd.home();
+    lcd.print("watering");
+  }
   delaySec(15);
   digitalWrite(switchPumpPin, LOW);
   delaySec(iTimeSec);
@@ -108,57 +141,81 @@ void watering(int iTimeSec)
 }
 
 void loop() {
-  lcd.backlight();
-  lcd.display();
-  
+  if (state)
+  {
+    lcd.backlight();
+    lcd.display();
+    Serial.println("state == true");
+  }
+  else
+  {
+    lcd.noDisplay();
+    lcd.noBacklight();
+    Serial.println("state == false");
+  }
+
   digitalWrite ( switchSensorPin, HIGH );
-  amountOfLight = averLight(5, 5);
+  amountOfLight = averLight(15, 5);
   
   if ( !isLightSwitched && (amountOfLight < 150) )
   {
-    lcd.clear();
-    lcd.home();
-    lcd.print("switch on");
-    lcd.setCursor( 0, 1 );
-    lcd.print("light - ");
-    lcd.print(amountOfLight);
-    delay(3000);    
+    lcd.backlight();
+    lcd.display();
+    state = true;
+    if (state)
+    {
+      lcd.clear();
+      lcd.home();
+      lcd.print("switch on");
+      lcd.setCursor( 0, 1 );
+      lcd.print("light - ");
+      lcd.print(amountOfLight);
+      delay(3000);
+    }    
 //    Serial.print("switch the light on ");
 //    Serial.println(amountOfLight);
 
     switchTheLight( 1 );
 
-    lcd.clear();
-    lcd.home();
-    lcd.print("watering");
     watering(30);
-    
-    lcd.clear();
-    lcd.home();
-    lcd.print("calc. threshold");
-    newThreshold = averLight(15, 5);
-    
-    lcd.clear();
-    lcd.home();
-    lcd.print("Threshold ");
-    lcd.setCursor ( 0, 1 );
-    lcd.print(newThreshold);
-    delay(3000);
-    
-//    Serial.print("newThreshold ");
-//    Serial.println(newThreshold);
-  }
-  else if ( isLightSwitched && (amountOfLight > (newThreshold + 100)) )   
-  {
-    for (int i = 0; i < 12; ++i)
+
+    if (state)
     {
       lcd.clear();
       lcd.home();
-      lcd.print("to switch off");
+      lcd.print("calc. threshold");
+    }
+    newThreshold = averLight(15, 5);
+
+    if (state)
+    {
+      lcd.clear();
+      lcd.home();
+      lcd.print("Threshold ");
       lcd.setCursor ( 0, 1 );
-      lcd.print((12 - i) * 5);
-      lcd.print(" min");
-      delaySec(5 * 60);
+      lcd.print(newThreshold);
+      delay(3000);
+    }
+    lcd.noDisplay();
+    lcd.noBacklight();
+    state = false;
+//    Serial.print("newThreshold ");
+//    Serial.println(newThreshold);
+  }
+  else if ( isLightSwitched && (amountOfLight > (newThreshold + 150)) )   
+  {
+    for (int i = 0; i < 60; ++i)
+    {
+      if (state)
+      {
+        lcd.clear();
+        lcd.home();
+        lcd.print("to switch off");
+        lcd.setCursor ( 0, 1 );
+        lcd.print(60 - i);
+        lcd.print(" min");
+      }
+      delaySec(60);
     }
     amountOfLight = averLight(15, 5);
 //    if ( amountOfLight > 900 )
@@ -172,24 +229,48 @@ void loop() {
 //  Serial.println(amountOfLight);
   digitalWrite(switchSensorPin, LOW);
   timeFromWatering += 1;
-  
-  lcd.clear();
-  lcd.home();
-  lcd.print("FROM WATERING ");
-  lcd.setCursor ( 0, 1 );
-  lcd.print(timeFromWatering);
-  delay(3000);
-  lcd.clear();
-  lcd.home();
-  lcd.print("Light - ");
-  lcd.print(amountOfLight);
-  lcd.setCursor ( 0, 1 );
-  lcd.print("Threshold - ");
-  lcd.print(newThreshold);
-  delay(5000);
-  lcd.noDisplay();
-  lcd.noBacklight();
+
+  if (state)
+  {
+    lcd.clear();
+    lcd.home();
+    lcd.print("FROM WATERING ");
+    lcd.setCursor ( 0, 1 );
+    lcd.print(timeFromWatering);
+    delay(3000);
+    lcd.clear();
+    lcd.home();
+    lcd.print("Light - ");
+    lcd.print(amountOfLight);
+    lcd.setCursor ( 0, 1 );
+    lcd.print("Threshold - ");
+    lcd.print(newThreshold);
+    delay(5000);
+  }
 //  Serial.print("TIME FROM WATERING "); 
 //  Serial.println(timeFromWatering);  
-  delaySec(10);
+  delaySec(delayTime);
 }
+
+void switchDistlay()
+{
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  // If interrupts come faster than 20ms, assume it's a bounce and ignore
+  if (interrupt_time - last_interrupt_time > 200) 
+  {
+    state = !state;
+    if (state)
+    {  
+      digitalWrite(ledPin, HIGH);
+      delayTime = 1;
+    }  
+    else
+    {
+      digitalWrite(ledPin, LOW);
+      delayTime = 60;
+    }
+  }
+  last_interrupt_time = interrupt_time;
+}
+
